@@ -1,0 +1,9 @@
+requests
+flask
+yt-dlp
+duckduckgo-search
+aiohttp
+tzdata
+beautifulsoup4
+Pillow
+curl_cffi
