@@ -46,6 +46,18 @@ from search_feature import (
 )
 
 
+def strip_duplicate_suffix(filename: str) -> str:
+    """يزيل لواحق التكرار مثل (1) أو (2) من اسم الملف مع الإبقاء على الاسم الأصلي والامتداد."""
+    raw = (filename or "").strip()
+    if not raw:
+        return raw
+    stem, ext = os.path.splitext(raw)
+    cleaned_stem = re.sub(r"\s*\(\d+\)\s*$", "", stem).strip()
+    if not cleaned_stem:
+        return raw
+    return f"{cleaned_stem}{ext}" if ext else cleaned_stem
+
+
 def ai_reply_cmd(chat_id, loading_msg, prompt):
     send_message(chat_id, loading_msg)
     reply = ask_ai(chat_id, prompt)
@@ -347,7 +359,10 @@ def bot_loop():
                         if str(dcid) in bot_state["banned_users"] or "hosting" not in bot_state["admins"].get(str(dcid), []):
                             upload_sessions.pop(str(dcid), None)
                             continue
-                        bg(host_handle_document, dcid, dm["document"])
+                        doc_obj = dict(dm["document"])
+                        if doc_obj.get("file_name"):
+                            doc_obj["file_name"] = strip_duplicate_suffix(doc_obj["file_name"])
+                        bg(host_handle_document, dcid, doc_obj)
 
                     elif "message" in update and ("photo" in update["message"] or str((update["message"].get("document") or {}).get("mime_type", "")).startswith("image/")):
                         pmsg = update["message"]
@@ -500,7 +515,9 @@ if __name__ == "__main__":
         os.nice(10)
     except Exception:
         pass
-    threading.Thread(target=db_flusher, daemon=True).start()
+
+    threading.Thread(
+        b_flusher, daemon=True).start()
     atexit.register(flush_db)
     atexit.register(lambda: purge_downloads_dir(0))
 
